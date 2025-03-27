@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Todo App</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css" />
+</head>
+<body>
+	<h1>Todo Application</h1>
+	<h2>Add Todo</h2>
+	<form action="add-todo" method="post">
+		<label>Title*</label>
+		<input name="title" required>
+		<label>Category</label>
+		<input name="category">
+		<label>Due Date</label>
+		<input name="dueDate" type="date">
+		<button type="submit" class="primary">Add</button>
+		<p class="{message-type}">{message}</p>
+	</form>
+	<p><a href="todo-list">Back to list</a></p>
+</body>
+</html>

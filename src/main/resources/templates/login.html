@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Todo App</title>
+	<link rel="stylesheet" type="text/css" href="css/styles.css" />
+</head>
+<body>
+	<h1>Todo Application</h1>
+	<h2>Welcome</h2>
+	<form action="login" method="post">
+		<label>Username*</label>
+		<input name="username" type="text" value="{username}" required />
+		<label>Password*</label>
+		<input name="password" type="password" required />
+		<button type="submit" class="primary" name="action" value="login">Login</button>
+		<button type="submit" class="secondary" name="action" value="register">Register</button>
+		<p class="danger">{message}</p>
+	</form>
+</body>
+</html>
