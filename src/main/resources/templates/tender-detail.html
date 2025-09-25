@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TenderPoint — Tender Detail</title>
+    <link rel="stylesheet" href="css/styles.css"/>
+    <script src="js/tender-detail.js" defer></script>
+</head>
+<body>
+<main class="container">
+    <header>
+        <div class="brand"><div class="logo">TP</div><div><h1>TenderPoint</h1><p>Discover & manage tenders</p></div></div>
+        <nav aria-label="Primary">
+            <a class="nav-link" href="tender">Home</a>
+            <a class="nav-link" href="about">About</a>
+            <a class="nav-link" href="contact">Contact</a>
+            {authLink}
+        </nav>
+    </header>
+
+    <section class="card" style="padding:16px">
+        <h3 id="t-title" style="margin:0 0 8px"></h3>
+        <div id="t-meta" style="color:var(--muted);margin-bottom:8px"></div>
+        <p id="t-desc" style="margin:10px 0 0"></p>
+        <div style="margin-top:10px">
+            <b>Term of Construction: </b><span id="t-term"></span><br/>
+            <b>Estimated price: </b><span id="t-price"></span><br/>
+            <b>Status: </b><span id="t-status" class="badge"></span><br/>
+            <div id="win-row"><b>Winner reason: </b><span id="t-reason"></span></div>
+        </div>
+        <p class="danger" id="t-error" style="margin-top:10px"></p>
+
+        <div id="staff-actions" style="margin-top:12px;display:none">
+            <a class="cta" id="edit-link">Edit</a>
+            <a class="cta" id="delete-link">Delete</a>
+            <a class="cta" id="close-link">Close</a>
+        </div>
+    </section>
+
+    <section class="tender-list">
+        <h3>Bidding List</h3>
+        <div class="card">
+            <table>
+                <thead><tr><th>Company ID</th><th>Company name</th><th>Bidding price</th><th>Created</th><th></th></tr></thead>
+                <tbody id="bids-body"></tbody>
+            </table>
+        </div>
+
+        <div id="bid-form-wrap" class="card" style="margin-top:12px;padding:12px">
+            <h4 style="margin:0 0 8px">Place a bid</h4>
+            <form id="bid-form">
+                <input type="text" id="company_id" placeholder="Company ID (optional, defaults to your username)"/>
+                <input type="text" id="company_name" placeholder="Company name (optional)"/>
+                <input type="number" step="0.01" id="bid_price" placeholder="Bid price" required/>
+                <button class="btn" type="submit">Submit bid</button>
+            </form>
+            <p class="danger" id="bid-msg"></p>
+        </div>
+
+        <div id="award-wrap" class="card" style="margin-top:12px;padding:12px;display:none">
+            <h4 style="margin:0 0 8px">Select winner</h4>
+            <form id="award-form">
+                <label>Winning Bid ID</label>
+                <input id="winner_bid_id" type="number" required/>
+                <label>Reason</label>
+                <input id="winner_reason" type="text" placeholder="Reason of the winner" required/>
+                <button class="btn" type="submit">Award</button>
+            </form>
+            <p class="danger" id="award-msg"></p>
+        </div>
+    </section>
+
+    <footer>
+        <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+    </footer>
+</main>
+</body>
+</html>

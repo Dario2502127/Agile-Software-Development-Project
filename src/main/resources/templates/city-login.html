@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TenderPoint — City Staff Login</title>
+  <link rel="stylesheet" href="css/city-login.css" />
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card">
+    <h1 class="logo">TenderPoint</h1>
+    <h2>City Staff Login</h2>
+
+    <!-- Must use method="post", action="city-login"
+         and the input names MUST be staffId / password -->
+    <form action="city-login" method="post">
+      <label for="staff-id">Staff ID</label>
+      <input type="text" id="staff-id" name="staffId" placeholder="Enter your staff ID" required />
+
+      <label for="city-password">Password</label>
+      <input type="password" id="city-password" name="password" placeholder="Enter your password" required />
+
+      <button type="submit" class="btn">Login</button>
+
+      <!-- server-side error message -->
+      <p class="danger">{message}</p>
+    </form>
+
+    <div class="links">
+      <a href="login">Back to Supplier Login</a>
+    </div>
+  </div>
+</main>
+
+<!-- IMPORTANT: remove or empty js/city-login.js so it doesn't preventDefault() -->
+<!-- <script src="js/city-login.js"></script> -->
+</body>
+</html>

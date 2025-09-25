@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TenderPoint — Register</title>
+  <link rel="stylesheet" href="css/register.css">
+</head>
+<body>
+<main class="register-container">
+  <div class="register-card">
+    <h1 class="logo">TenderPoint</h1>
+    <h2>Create a new account</h2>
+
+    <!-- Note: This posts to /login so LoginServlet can handle action=register -->
+    <form action="login" method="post">
+      <label for="name">Company Name</label>
+      <input type="text" id="name" name="companyName" required>
+
+      <label for="registration">Registration Number</label>
+      <input type="text" id="registration" name="registrationNumber" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="username" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+
+      <label for="confirm-password">Confirm Password</label>
+      <input type="password" id="confirm-password" name="confirm" required>
+
+      <button type="submit" class="btn" name="action" value="register">Register</button>
+      <p class="danger">{message}</p>
+    </form>
+
+    <div class="links">
+      <a href="login">Already have an account? Sign In</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,81 @@
+body {
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background-image: url('../img/background.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.forgot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.forgot-card {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  width: 320px;
+  text-align: center;
+}
+
+.logo {
+  color: #0b6efd;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0 15px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+button.btn {
+  width: 100%;
+  padding: 10px;
+  background: #0b6efd;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button.btn:hover {
+  background: #0951b8;
+}
+
+.links {
+  margin-top: 15px;
+}
+
+.links a {
+  text-decoration: none;
+  color: #0b6efd;
+  font-size: 0.9rem;
+}
+
+.links a:hover {
+  text-decoration: underline;
+}

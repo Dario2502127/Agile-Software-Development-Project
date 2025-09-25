@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TenderPoint — Create Tender</title>
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<main class="container">
+
+    <!-- Header (same as other pages) -->
+    <header>
+        <div class="brand">
+            <div class="logo" aria-hidden="true">TP</div>
+            <div>
+                <h1>TenderPoint</h1>
+                <p>Discover & manage tenders</p>
+            </div>
+        </div>
+        <nav aria-label="Primary">
+            <a class="nav-link" href="tender">Home</a>
+            <a class="nav-link" href="about">About</a>
+            <a class="nav-link" href="contact">Contact</a>
+            <a class="cta" href="logout">Logout</a>
+        </nav>
+    </header>
+
+    <!-- Card form -->
+    <section class="auth-card form-card" aria-labelledby="title">
+        <h2 id="title">Create Tender</h2>
+
+        <!-- IMPORTANT:
+             1) Use a normal POST to the servlet route "tender-form"
+             2) Input names MUST match TenderFormServlet: name, noticeDate, closeDate,
+                description, termOfConstruction, estimatedPrice
+        -->
+        <form action="tender-form" method="post" class="form-grid" novalidate>
+            <div class="form-field">
+                <label for="name">Tender Name</label>
+                <input id="name" name="name" type="text" placeholder="e.g. Road resurfacing — District 5" required>
+            </div>
+
+            <div class="form-field">
+                <label for="noticeDate">Date of Tender Notice</label>
+                <input id="noticeDate" name="noticeDate" type="date" required>
+            </div>
+
+            <div class="form-field">
+                <label for="closeDate">Date of Tender Close</label>
+                <input id="closeDate" name="closeDate" type="date" required>
+            </div>
+
+            <!-- Disclose date is normally set automatically when awarding, so it is not sent here.
+                 TenderFormServlet sets discloseDate = null on create. -->
+
+            <div class="form-field form-field-span">
+                <label for="description">Tender Description</label>
+                <textarea id="description" name="description" rows="3" placeholder="Brief scope, deliverables, special requirements…"></textarea>
+            </div>
+
+            <div class="form-field">
+                <label for="termOfConstruction">Term of Construction</label>
+                <input id="termOfConstruction" name="termOfConstruction" type="text" placeholder="e.g. 12 months">
+            </div>
+
+            <div class="form-field">
+                <label for="estimatedPrice">Estimated tender price</label>
+                <input id="estimatedPrice" name="estimatedPrice" type="number" step="0.01" min="0" placeholder="e.g. 250000.00">
+            </div>
+
+            <div class="form-actions form-field-span">
+                <a class="btn btn-secondary" href="tender">Cancel</a>
+                <button class="btn" type="submit">Save</button>
+            </div>
+        </form>
+    </section>
+
+    <footer>
+        <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+    </footer>
+</main>
+
+<script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

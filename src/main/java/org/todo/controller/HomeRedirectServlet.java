@@ -7,11 +7,10 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
-@WebServlet("/logout")
-public class LogoutServlet extends HttpServlet {
+@WebServlet("")
+public class HomeRedirectServlet extends HttpServlet {
 	@Override
-	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		request.getSession().invalidate();
-		response.sendRedirect("login");
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		resp.sendRedirect("tender");
 	}
 }

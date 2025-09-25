@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TenderPoint — About</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main class="container">
+    <header>
+        <div class="brand">
+            <div class="logo" aria-hidden="true">TP</div>
+            <div>
+                <h1>TenderPoint</h1>
+                <p>Discover & manage tenders</p>
+            </div>
+        </div>
+
+        <nav aria-label="Primary">
+            <a class="nav-link" href="tender">Home</a>
+            <a class="nav-link" href="about">About</a>
+            <a class="nav-link" href="contact">Contact</a>
+            {authLink}
+        </nav>
+    </header>
+
+    <section class="card" style="padding:20px">
+        <h2 style="margin:0 0 10px">About TenderPoint</h2>
+        <p>
+            TenderPoint helps suppliers and buyers connect more easily. Our goal is to make procurement
+            more transparent, efficient, and accessible for public and private organizations.
+        </p>
+        <p>
+            Browse tenders, filter by sector and value, and stay up to date with opportunities relevant to you.
+        </p>
+    </section>
+
+    <footer>
+        <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+        <div style="display:flex;gap:18px;align-items:center">
+            <a class="nav-link" href="about">About</a>
+            <a class="nav-link" href="contact">Contact</a>
+        </div>
+    </footer>
+</main>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

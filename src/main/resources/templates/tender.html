@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TenderPoint — Open Tenders & Bids</title>
+  <meta name="description" content="Find, publish and manage public and private tenders. TenderPoint helps buyers and suppliers connect quickly and securely." />
+  <meta name="theme-color" content="#0b6efd" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="js/Script.js" defer></script>
+</head>
+<body>
+<main class="container">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">TP</div>
+      <div>
+        <h1>TenderPoint</h1>
+        <p>Discover & manage tenders</p>
+      </div>
+    </div>
+    <nav aria-label="Primary">
+      <a class="nav-link" href="about">About</a>
+      <a class="nav-link" href="contact">Contact</a>
+      {authLink}
+    </nav>
+  </header>
+
+  <section class="hero" role="region" aria-labelledby="hero-title">
+    <div class="hero-left">
+      <h2 id="hero-title">Find the right tenders. Win the right bids.</h2>
+      <p>Search public and private procurement opportunities, filter by sector, region and value, and get automated alerts for tenders that match your profile.</p>
+
+      <form class="searchbar" role="search" aria-label="Search tenders">
+        <input id="q" type="search" placeholder="Search tenders, keywords, or reference" aria-label="Search" />
+        <button class="btn" type="submit">Search</button>
+      </form>
+
+      <div class="stats" aria-hidden="true">
+        <div class="stat">
+          <strong id="active-count">0</strong>
+          <span>Active tenders</span>
+        </div>
+        <div class="stat">
+          <strong id="total-tenders">0</strong>
+          <span>Total tenders</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="right-col card">
+      <div class="filters">
+        <label for="sector">Sector</label>
+        <select id="sector">
+          <option value="">All sectors</option>
+          <option>Construction</option>
+          <option>IT & Software</option>
+          <option>Healthcare</option>
+          <option>Education</option>
+        </select>
+
+        <label for="value">Estimated value</label>
+        <select id="value">
+          <option value="">Any value</option>
+          <option>&lt; 50k</option>
+          <option>50k - 500k</option>
+          <option>&gt; 500k</option>
+        </select>
+
+        <label for="type">Type</label>
+        <select id="type">
+          <option value="">Any type</option>
+          <option>Open</option>
+          <option>Closed</option>
+          <option>Awarded</option>
+        </select>
+
+        <div class="quick-actions">
+          <button class="btn" type="button" onclick="applySearch()">Apply filters</button>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <section class="tender-list">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0">Latest tenders</h3>
+      <div style="display:flex;gap:10px;align-items:center">
+        <a id="add-tender-btn" class="cta" href="tender-form">Add Tender</a>
+        <div style="color:var(--muted);font-size:0.95rem">Sorted by closing date</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table aria-describedby="tender-table-desc">
+        <thead>
+        <tr>
+          <th>Tender ID</th>
+          <th>Tender Name</th>
+          <th>Date of Tender Notice</th>
+          <th>Date of Tender Close</th>
+          <th>Date of Disclosing Winner</th>
+          <th>Status</th>
+          <th><!-- Actions --></th>
+        </tr>
+        </thead>
+        <tbody id="tenders-body">
+        <!-- rows injected by Script.js -->
+        </tbody>
+      </table>
+      <div id="empty-state" style="display:none;padding:14px;color:var(--muted)">No tenders yet.</div>
+    </div>
+  </section>
+
+  <footer>
+    <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+    <div style="display:flex;gap:18px;align-items:center">
+      <a class="nav-link" href="#privacy">Privacy</a>
+      <a class="nav-link" href="#terms">Terms</a>
+    </div>
+  </footer>
+</main>
+</body>
+</html>
