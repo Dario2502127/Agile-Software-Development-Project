@@ -2,9 +2,7 @@ package org.todo.model.tender;
 
 import org.todo.model.db.DB;
 
-import java.math.BigDecimal;
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +24,7 @@ public class TenderDao {
 		t.winnerReason = rs.getString("winner_reason");
 		long wb = rs.getLong("winner_bid_id");
 		t.winnerBidId = rs.wasNull() ? null : wb;
+		t.category = rs.getString("category");
 		return t;
 	}
 
@@ -53,8 +52,8 @@ public class TenderDao {
 		try (Connection c = DB.get();
 			 PreparedStatement ps = c.prepareStatement("""
                  insert into tenders(name, notice_date, close_date, disclose_date, status, staff_email,
-                                     description, term_of_construction, estimated_price, winner_reason, winner_bid_id)
-                 values(?,?,?,?,?,?,?,?,?,?,?)
+                                     description, term_of_construction, estimated_price, winner_reason, winner_bid_id, category)
+                 values(?,?,?,?,?,?,?,?,?,?,?,?)
                  """, Statement.RETURN_GENERATED_KEYS)) {
 			ps.setString(1, t.name);
 			ps.setDate(2, Date.valueOf(t.noticeDate));
@@ -67,6 +66,7 @@ public class TenderDao {
 			if (t.estimatedPrice == null) ps.setNull(9, Types.DECIMAL); else ps.setBigDecimal(9, t.estimatedPrice);
 			ps.setString(10, t.winnerReason);
 			if (t.winnerBidId == null) ps.setNull(11, Types.BIGINT); else ps.setLong(11, t.winnerBidId);
+			ps.setString(12, t.category);
 			ps.executeUpdate();
 			ResultSet keys = ps.getGeneratedKeys();
 			keys.next();
@@ -78,7 +78,7 @@ public class TenderDao {
 		try (Connection c = DB.get();
 			 PreparedStatement ps = c.prepareStatement("""
                  update tenders set name=?, notice_date=?, close_date=?, disclose_date=?, status=?, staff_email=?,
-                       description=?, term_of_construction=?, estimated_price=?, winner_reason=?, winner_bid_id=?
+                       description=?, term_of_construction=?, estimated_price=?, winner_reason=?, winner_bid_id=?, category=?
                  where id=?
                  """)) {
 			ps.setString(1, t.name);
@@ -92,7 +92,8 @@ public class TenderDao {
 			if (t.estimatedPrice == null) ps.setNull(9, Types.DECIMAL); else ps.setBigDecimal(9, t.estimatedPrice);
 			ps.setString(10, t.winnerReason);
 			if (t.winnerBidId == null) ps.setNull(11, Types.BIGINT); else ps.setLong(11, t.winnerBidId);
-			ps.setLong(12, t.id);
+			ps.setString(12, t.category);
+			ps.setLong(13, t.id);
 			ps.executeUpdate();
 		}
 	}
@@ -105,7 +106,6 @@ public class TenderDao {
 		}
 	}
 
-	/** Close a tender (no automatic winner). */
 	public void close(long id) throws SQLException {
 		try (Connection c = DB.get();
 			 PreparedStatement ps = c.prepareStatement("update tenders set status='Closed' where id=?")) {
@@ -114,7 +114,6 @@ public class TenderDao {
 		}
 	}
 
-	/** Choose the winning bid → sets status Awarded and disclose date = today. */
 	public void award(long tenderId, long bidId, String reason) throws SQLException {
 		try (Connection c = DB.get();
 			 PreparedStatement ps = c.prepareStatement(

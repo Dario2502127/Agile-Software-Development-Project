@@ -21,18 +21,53 @@ function badgeClass(status) {
 }
 
 let ALL_TENDERS = [];
+let CURRENT_FILTERED = [];
+const PAGE_SIZE = 10;
+let currentLimit = PAGE_SIZE;
 
 async function fetchTenders() {
-  // Relative URL works under any context path
   const r = await fetch("api/tenders", { headers: { "Accept": "application/json" } });
   if (!r.ok) throw new Error("Failed to load tenders: " + r.status);
   return await r.json();
 }
 
+function ensureShowMoreButton() {
+  let host = document.getElementById("show-more-wrap");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "show-more-wrap";
+    host.style = "display:flex;justify-content:center;margin-top:10px";
+    const card = document.querySelector(".tender-list .card");
+    if (card) card.appendChild(host);
+  }
+  return host;
+}
+function renderShowMoreIfNeeded() {
+  const host = ensureShowMoreButton();
+  if (!host) return;
+  if (CURRENT_FILTERED.length > currentLimit) {
+    host.innerHTML = `<button id="show-more" class="btn btn-secondary" type="button">Show more</button>`;
+    document.getElementById("show-more")?.addEventListener("click", () => {
+      currentLimit += PAGE_SIZE;
+      renderTable(CURRENT_FILTERED.slice(0, currentLimit));
+      renderShowMoreIfNeeded();
+    });
+  } else {
+    host.innerHTML = "";
+  }
+}
+
 function renderTable(rows) {
   const tbody = document.getElementById("tenders-body");
+  const empty = document.getElementById("empty-state");
   if (!tbody) return;
+
   tbody.innerHTML = "";
+  if (!rows || rows.length === 0) {
+    if (empty) empty.style.display = "block";
+    return;
+  }
+  if (empty) empty.style.display = "none";
 
   rows.forEach(t => {
     const tr = document.createElement("tr");
@@ -40,7 +75,10 @@ function renderTable(rows) {
       <td>${esc(t.id)}</td>
       <td>
         <div class="title">${esc(t.name)}</div>
-        <div class="meta">Ref: TN-${String(t.id).padStart(5,"0")}</div>
+        <div class="meta">
+          Ref: TN-${String(t.id).padStart(5,"0")}
+          ${t.category ? ` · <span class="badge badge-open" style="opacity:.7">${esc(t.category)}</span>` : ""}
+        </div>
       </td>
       <td>${fmtDate(t.notice_date)}</td>
       <td>${fmtDate(t.close_date)}</td>
@@ -52,9 +90,24 @@ function renderTable(rows) {
   });
 }
 
-function applySearch() {
+function priceMatchesFilter(priceStr, filter) {
+  if (!filter) return true;                      // Any value
+  if (priceStr == null || priceStr === "") return false; // no price -> cannot match specific ranges
+  const p = parseFloat(priceStr);
+  if (Number.isNaN(p)) return false;
+
+  switch (filter) {
+    case "<50k":   return p < 50000;
+    case "50-500": return p >= 50000 && p <= 500000;
+    case ">500":   return p > 500000;
+    default:       return true;
+  }
+}
+
+function applyFilters() {
   const q = (document.getElementById("q")?.value || "").trim().toLowerCase();
   const type = (document.getElementById("type")?.value || "").trim().toLowerCase();
+  const value = (document.getElementById("value")?.value || "").trim(); // "<50k" | "50-500" | ">500" | ""
 
   let list = [...ALL_TENDERS];
 
@@ -71,7 +124,15 @@ function applySearch() {
     else if (type.includes("close")) list = list.filter(t => (t.status || "").toLowerCase().includes("close"));
   }
 
-  renderTable(list);
+  // Estimated value filter (works only when a price is present)
+  if (value) {
+    list = list.filter(t => priceMatchesFilter(t.estimated_price, value));
+  }
+
+  CURRENT_FILTERED = list;
+  currentLimit = PAGE_SIZE;
+  renderTable(CURRENT_FILTERED.slice(0, currentLimit));
+  renderShowMoreIfNeeded();
 }
 
 async function init() {
@@ -87,20 +148,27 @@ async function init() {
     const totalNode = document.getElementById("total-tenders");
     if (totalNode) totalNode.textContent = String(ALL_TENDERS.length);
 
-    renderTable(ALL_TENDERS);
+    // Initial table render (no filters) — only first 10
+    CURRENT_FILTERED = [...ALL_TENDERS];
+    currentLimit = PAGE_SIZE;
+    renderTable(CURRENT_FILTERED.slice(0, currentLimit));
+    renderShowMoreIfNeeded();
 
+    // Search applies only on submit (no live filter)
     const searchForm = document.querySelector('form.searchbar');
     if (searchForm) {
-      searchForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        applySearch();
-      });
+      searchForm.addEventListener("submit", (e) => { e.preventDefault(); applyFilters(); });
     }
-    const q = document.getElementById("q");
-    if (q) q.addEventListener("input", () => applySearch());
+
+    // Filters apply only when clicking the button
+    document.getElementById("apply-filters")?.addEventListener("click", () => applyFilters());
+
+    // We intentionally remove onchange listeners so filters only run on button click.
   } catch (err) {
     console.error(err);
-    renderTable([]); // show empty state if failed
+    CURRENT_FILTERED = [];
+    renderTable([]);
+    renderShowMoreIfNeeded();
   }
 }
 

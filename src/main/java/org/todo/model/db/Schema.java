@@ -29,6 +29,9 @@ public final class Schema {
                 );
             """);
 
+			// >>> NEW: add tender category (single value) <<<
+			st.execute("alter table tenders add column if not exists category varchar(100);");
+
 			// BIDS TABLE
 			st.execute("""
                 create table if not exists bids(
@@ -42,8 +45,22 @@ public final class Schema {
                 );
             """);
 
+			// File attachments table (already added earlier)
+			st.execute("""
+                create table if not exists bid_files(
+                  id identity primary key,
+                  bid_id bigint not null unique,
+                  filename varchar(255),
+                  content_type varchar(255),
+                  data blob not null,
+                  created_at timestamp not null default current_timestamp(),
+                  foreign key (bid_id) references bids(id) on delete cascade
+                );
+            """);
+
 			// USEFUL INDEXES
 			st.execute("create index if not exists idx_tenders_close on tenders(close_date)");
+			st.execute("create index if not exists idx_tenders_category on tenders(category)");
 			st.execute("create index if not exists idx_bids_tender on bids(tender_id)");
 		} catch (SQLException e) {
 			throw new RuntimeException("Schema initialization failed", e);

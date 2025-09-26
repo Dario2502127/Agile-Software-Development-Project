@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>TenderPoint — Companies</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <link rel="stylesheet" href="css/companies.css"/>
+  <script defer src="js/companies.js"></script>
+</head>
+<body>
+<main class="container">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">TP</div>
+      <div>
+        <h1>TenderPoint</h1>
+        <p>Company administration</p>
+      </div>
+    </div>
+    <nav aria-label="Primary">
+      <a class="nav-link" href="./">Home</a>
+      {authLink}
+    </nav>
+  </header>
+
+  <!-- ---------- CREATE COMPANY (moved to top) ---------- -->
+  <div class="admin-header">
+    <h3 class="admin-title">Create Company</h3>
+    <!-- keeps the quick button (resets form & focuses); optional -->
+    <button id="new-btn" class="btn btn-primary" type="button">New Company</button>
+  </div>
+
+  <section class="admin-card form-card" id="create-card">
+    <h3 id="form-title" class="form-head" style="margin-top:0">Create Company</h3>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="f-uid">Company ID</label>
+        <input id="f-uid" class="input" placeholder="Unique login / ID"/>
+      </div>
+
+      <div class="form-field">
+        <label for="f-name">Name</label>
+        <input id="f-name" class="input" placeholder="Company name"/>
+      </div>
+
+      <div class="form-field">
+        <label for="f-pass">Password <span class="hint">(leave empty to keep current on edit)</span></label>
+        <input id="f-pass" class="input" type="password" placeholder="Set/Change password"/>
+      </div>
+
+      <div class="form-field">
+        <label>Categories</label>
+        <div id="cat-pills" class="pill-wrap"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save-btn" class="btn btn-primary">Save</button>
+      <button id="reset-btn" class="btn btn-secondary" type="button">Reset</button>
+      <span id="form-msg" class="hint" style="margin-left:8px"></span>
+    </div>
+
+    <input type="hidden" id="f-id" value="">
+  </section>
+
+  <!-- ---------- COMPANIES LIST (now below form) ---------- -->
+  <div class="admin-header" style="margin-top:18px">
+    <h3 class="admin-title">Companies</h3>
+  </div>
+
+  <section class="admin-card list-card">
+    <div class="list-inner">
+      <table class="table">
+        <thead>
+        <tr>
+          <th style="width:90px">ID</th>
+          <th style="width:180px">Company ID</th>
+          <th style="width:240px">Name</th>
+          <th>Categories</th>
+          <th style="width:210px"></th>
+        </tr>
+        </thead>
+        <tbody id="companies-body"></tbody>
+      </table>
+      <div id="empty-companies" class="empty">No companies yet.</div>
+    </div>
+  </section>
+
+  <footer>
+    <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+  </footer>
+</main>
+
+<script>
+  // Optional: when clicking "New Company", scroll to the form for convenience
+  document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("new-btn");
+    btn?.addEventListener("click", () => {
+      document.getElementById("f-uid")?.focus();
+      document.getElementById("create-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+</script>
+</body>
+</html>

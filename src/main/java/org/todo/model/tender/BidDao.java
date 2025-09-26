@@ -17,12 +17,22 @@ public class BidDao {
 		b.companyName = rs.getString("company_name");
 		b.bidPrice = rs.getBigDecimal("bid_price");
 		b.createdAt = rs.getTimestamp("created_at").toLocalDateTime();
+
+		long aid = rs.getLong("attachment_id");
+		b.attachmentId = rs.wasNull() ? null : aid;
 		return b;
 	}
 
+	/** Lists bids for a tender, cheapest first, and includes attachment_id if present. */
 	public List<Bid> listFor(long tenderId) throws SQLException {
 		try (Connection c = DB.get();
-			 PreparedStatement ps = c.prepareStatement("select * from bids where tender_id=? order by bid_price asc")) {
+			 PreparedStatement ps = c.prepareStatement("""
+                 select b.*,
+                        (select id from bid_files bf where bf.bid_id=b.id) as attachment_id
+                 from bids b
+                 where b.tender_id=?
+                 order by b.bid_price asc
+             """)) {
 			ps.setLong(1, tenderId);
 			ResultSet rs = ps.executeQuery();
 			List<Bid> out = new ArrayList<>();

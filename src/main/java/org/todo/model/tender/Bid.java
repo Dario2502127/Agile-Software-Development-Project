@@ -10,4 +10,7 @@ public class Bid {
 	public String companyName;
 	public BigDecimal bidPrice;
 	public LocalDateTime createdAt;
+
+	// NEW: id of row in bid_files (null if none)
+	public Long attachmentId;
 }

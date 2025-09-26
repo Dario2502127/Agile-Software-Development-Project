@@ -1,63 +1,84 @@
 package org.todo.controller;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.todo.model.user.InvalidCredentialsException;
-import org.todo.model.user.UserAlreadyExistsException;
-import org.todo.model.user.UserService;
+import org.todo.model.company.Company;
+import org.todo.model.company.CompanyDao;
 import org.todo.view.TemplateEngine;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 @WebServlet("/login")
 public class LoginServlet extends HttpServlet {
 
-	private final UserService userService = UserService.getInstance();
+	private final CompanyDao companyDao = new CompanyDao();
 
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		// Already logged in as company? go home.
+		if (req.getSession(false) != null && req.getSession(false).getAttribute("username") != null) {
+			resp.sendRedirect(req.getContextPath() + "/");
+			return;
+		}
+		// Show login page (message placeholder supported)
+		if (req.getAttribute("message") == null) req.setAttribute("message", "");
 		TemplateEngine.process("login.html", req, resp);
 	}
 
 	@Override
-	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-		String username = req.getParameter("username");
-		String password = req.getParameter("password");
-		String action   = req.getParameter("action");
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		String action = s(req.getParameter("action"));
+		if (!"login".equalsIgnoreCase(action)) { doGet(req, resp); return; }
 
-		try {
-			if ("register".equals(action)) {
-				// optional confirm check if coming from register.html
-				String confirm = req.getParameter("confirm");
-				if (confirm != null && !confirm.equals(password)) {
-					req.setAttribute("message", "Passwords do not match.");
-					req.setAttribute("username", username);
-					TemplateEngine.process("register.html", req, resp);
-					return;
-				}
-				userService.registerUser(username, password);
-			} else {
-				userService.authenticateUser(username, password);
-			}
+		String companyId = s(req.getParameter("companyId"));
+		String password  = s(req.getParameter("password"));
 
-			HttpSession session = req.getSession();
-			session.setAttribute("username", username);
-
-			// >>> Redirect to Tender dashboard instead of todo-list
-			resp.sendRedirect("tender");
+		if (companyId.isBlank() || password.isBlank()) {
+			req.setAttribute("message", "Please enter company-id and password.");
+			TemplateEngine.process("login.html", req, resp);
 			return;
-
-		} catch (UserAlreadyExistsException e) {
-			req.setAttribute("message", "User already exists!");
-		} catch (InvalidCredentialsException e) {
-			req.setAttribute("message", "Invalid username or password!");
 		}
 
-		req.setAttribute("username", username);
-		doGet(req, resp);
+		try {
+			Company c = companyDao.findByUid(companyId);
+			if (c == null || !hash(password).equalsIgnoreCase(c.passwordHash)) {
+				req.setAttribute("message", "Invalid company-id or password.");
+				TemplateEngine.process("login.html", req, resp);
+				return;
+			}
+
+			// Success: set company session (and clear any staff login)
+			var ses = req.getSession(true);
+			ses.setAttribute("username", c.companyUid);   // used by BidsApiServlet
+			ses.setAttribute("companyName", c.name);
+			ses.setAttribute("companyDbId", c.id);
+			ses.removeAttribute("staffId");
+			ses.removeAttribute("staffEmail");
+
+			resp.sendRedirect(req.getContextPath() + "/");
+		} catch (Exception e) {
+			req.setAttribute("message", "Login failed: " + e.getMessage());
+			TemplateEngine.process("login.html", req, resp);
+		}
+	}
+
+	/* ----------------- helpers ----------------- */
+
+	private static String s(String v) { return v == null ? "" : v.trim(); }
+
+	private static String hash(String raw) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] d = md.digest(raw.getBytes(StandardCharsets.UTF_8));
+			StringBuilder b = new StringBuilder(d.length * 2);
+			for (byte x : d) b.append(String.format("%02x", x));
+			return b.toString();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

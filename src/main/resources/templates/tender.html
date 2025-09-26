@@ -29,7 +29,7 @@
   <section class="hero" role="region" aria-labelledby="hero-title">
     <div class="hero-left">
       <h2 id="hero-title">Find the right tenders. Win the right bids.</h2>
-      <p>Search public and private procurement opportunities, filter by sector, region and value, and get automated alerts for tenders that match your profile.</p>
+      <p>Search public and private procurement opportunities, filter by type and estimated value, and get automated alerts for tenders that match your profile.</p>
 
       <form class="searchbar" role="search" aria-label="Search tenders">
         <input id="q" type="search" placeholder="Search tenders, keywords, or reference" aria-label="Search" />
@@ -50,21 +50,14 @@
 
     <aside class="right-col card">
       <div class="filters">
-        <label for="sector">Sector</label>
-        <select id="sector">
-          <option value="">All sectors</option>
-          <option>Construction</option>
-          <option>IT & Software</option>
-          <option>Healthcare</option>
-          <option>Education</option>
-        </select>
+        <!-- Sector removed -->
 
         <label for="value">Estimated value</label>
         <select id="value">
           <option value="">Any value</option>
-          <option>&lt; 50k</option>
-          <option>50k - 500k</option>
-          <option>&gt; 500k</option>
+          <option value="<50k">&lt; 50k</option>
+          <option value="50-500">50k - 500k</option>
+          <option value=">500">&gt; 500k</option>
         </select>
 
         <label for="type">Type</label>
@@ -76,7 +69,7 @@
         </select>
 
         <div class="quick-actions">
-          <button class="btn" type="button" onclick="applySearch()">Apply filters</button>
+          <button id="apply-filters" class="btn" type="button">Apply filters</button>
         </div>
       </div>
     </aside>
@@ -87,6 +80,7 @@
       <h3 style="margin:0">Latest tenders</h3>
       <div style="display:flex;gap:10px;align-items:center">
         <a id="add-tender-btn" class="cta" href="tender-form">Add Tender</a>
+        <a id="companies-btn" class="cta btn-secondary" href="companies">Companies</a>
         <div style="color:var(--muted);font-size:0.95rem">Sorted by closing date</div>
       </div>
     </div>
@@ -104,9 +98,7 @@
           <th><!-- Actions --></th>
         </tr>
         </thead>
-        <tbody id="tenders-body">
-        <!-- rows injected by Script.js -->
-        </tbody>
+        <tbody id="tenders-body"></tbody>
       </table>
       <div id="empty-state" style="display:none;padding:14px;color:var(--muted)">No tenders yet.</div>
     </div>
