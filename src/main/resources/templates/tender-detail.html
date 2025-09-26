@@ -69,8 +69,15 @@
         </div>
     </section>
 
-    <!-- Place a bid -->
-    <section class="tender-list" style="margin-top:16px">
+    <!-- If not logged in: show info card instead of the form -->
+    <section id="login-required" class="card" style="display:none; margin-top:16px">
+        <p class="hint" style="margin:0">
+            You must <a href="login">log in</a> as a company to place a bid.
+        </p>
+    </section>
+
+    <!-- Place a bid (shown only when company is logged in) -->
+    <section id="place-bid-sec" class="tender-list" style="margin-top:16px">
         <h3 style="margin:0 0 10px">Place a bid</h3>
         <div class="card">
             <form id="bid-form" enctype="multipart/form-data">
@@ -92,6 +99,26 @@
         <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
     </footer>
 </main>
+
+<!-- Toggle bid form visibility based on login -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const sd = document.getElementById("session-data");
+        const companyId = (sd?.dataset.companyId || "").trim();
+        const isLoggedIn = companyId.length > 0;
+
+        const secForm = document.getElementById("place-bid-sec");
+        const secInfo = document.getElementById("login-required");
+
+        if (isLoggedIn) {
+            if (secForm) secForm.style.display = "block";
+            if (secInfo) secInfo.style.display = "none";
+        } else {
+            if (secForm) secForm.style.display = "none";
+            if (secInfo) secInfo.style.display = "block";
+        }
+    });
+</script>
 
 <!-- Scripts at end to avoid race conditions -->
 <script defer src="js/tender-detail.js"></script>
