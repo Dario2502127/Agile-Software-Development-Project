@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>TenderPoint — Edit Tender</title>
+    <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<main class="container">
+    <header>
+        <div class="brand"><div class="logo">TP</div><div><h1>TenderPoint</h1><p>Discover & manage tenders</p></div></div>
+        <nav aria-label="Primary">
+            <a class="nav-link" href="tender">Home</a>
+            <a class="nav-link" href="about">About</a>
+            <a class="nav-link" href="contact">Contact</a>
+            <a class="cta" href="logout">Logout</a>
+        </nav>
+    </header>
+
+    <section class="auth-card form-card" aria-labelledby="title">
+        <h2 id="title">Edit Tender</h2>
+
+        <!-- IMPORTANT: we post back to /tender-edit -->
+        <form action="tender-edit" method="post" class="form-grid" novalidate>
+            <input type="hidden" name="id" value="{id}"/>
+
+            <div class="form-field">
+                <label for="name">Tender Name</label>
+                <input id="name" name="name" type="text" value="{name}" required>
+            </div>
+
+            <div class="form-field">
+                <label for="notice_date">Date of Tender Notice</label>
+                <input id="notice_date" name="noticeDate" type="date" value="{notice_date}" required>
+            </div>
+
+            <div class="form-field">
+                <label for="close_date">Date of Tender Close</label>
+                <input id="close_date" name="closeDate" type="date" value="{close_date}" required>
+            </div>
+
+            <div class="form-field">
+                <label for="disclose_date">Date of Disclosing Winner</label>
+                <input id="disclose_date" name="discloseDate" type="date" value="{disclose_date}">
+            </div>
+
+            <div class="form-field form-field-span">
+                <label for="description">Tender Description</label>
+                <textarea id="description" name="description" rows="3">{description}</textarea>
+            </div>
+
+            <div class="form-field">
+                <label for="term">Term of Construction</label>
+                <input id="term" name="termOfConstruction" type="text" value="{term}">
+            </div>
+
+            <div class="form-field">
+                <label for="estimated_price">Estimated tender price</label>
+                <input id="estimated_price" name="estimatedPrice" type="number" step="0.01" min="0" value="{estimated_price}">
+            </div>
+
+            <div class="form-actions form-field-span">
+                <a class="btn btn-secondary" href="tender-detail?id={id}">Cancel</a>
+                <button class="btn" type="submit">Save changes</button>
+            </div>
+
+            <p class="danger form-field-span">{message}</p>
+        </form>
+    </section>
+
+    <footer>
+        <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
+    </footer>
+</main>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

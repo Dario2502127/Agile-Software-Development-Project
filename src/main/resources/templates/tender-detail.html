@@ -23,26 +23,37 @@
         <h3 id="t-title" style="margin:0 0 8px"></h3>
         <div id="t-meta" style="color:var(--muted);margin-bottom:8px"></div>
         <p id="t-desc" style="margin:10px 0 0"></p>
+
         <div style="margin-top:10px">
             <b>Term of Construction: </b><span id="t-term"></span><br/>
             <b>Estimated price: </b><span id="t-price"></span><br/>
             <b>Status: </b><span id="t-status" class="badge"></span><br/>
             <div id="win-row"><b>Winner reason: </b><span id="t-reason"></span></div>
         </div>
+
         <p class="danger" id="t-error" style="margin-top:10px"></p>
 
         <div id="staff-actions" style="margin-top:12px;display:none">
-            <a class="cta" id="edit-link">Edit</a>
-            <a class="cta" id="delete-link">Delete</a>
-            <a class="cta" id="close-link">Close</a>
+            <a class="cta" id="edit-link" href="#">Edit</a>
+            <a class="cta" id="delete-link" href="#">Delete</a>
+            <a class="cta" id="close-link" href="#">Close</a>
         </div>
+
     </section>
 
     <section class="tender-list">
         <h3>Bidding List</h3>
         <div class="card">
             <table>
-                <thead><tr><th>Company ID</th><th>Company name</th><th>Bidding price</th><th>Created</th><th></th></tr></thead>
+                <thead>
+                <tr>
+                    <th>Company ID</th>
+                    <th>Company name</th>
+                    <th>Bidding price</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+                </thead>
                 <tbody id="bids-body"></tbody>
             </table>
         </div>
