@@ -62,6 +62,9 @@ public final class Schema {
 			st.execute("create index if not exists idx_tenders_close on tenders(close_date)");
 			st.execute("create index if not exists idx_tenders_category on tenders(category)");
 			st.execute("create index if not exists idx_bids_tender on bids(tender_id)");
+			st.execute("alter table companies add column if not exists failed_attempts int default 0");
+			st.execute("alter table companies add column if not exists locked boolean default false");
+
 		} catch (SQLException e) {
 			throw new RuntimeException("Schema initialization failed", e);
 		}

@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  *  GET    /api/companies/{id}        -> company detail
  *  POST   /api/companies             -> create company (JSON; staff only)
  *  POST   /api/companies/{id}        -> update company (JSON; staff only; password optional)
+ *  POST   /api/companies/{id}?action=unlock -> unlock account (staff only)
  *  DELETE /api/companies/{id}        -> delete company (staff only)
  */
 @WebServlet("/api/companies/*")
@@ -53,20 +54,29 @@ public class CompaniesApiServlet extends HttpServlet {
 		}
 	}
 
-	/* ----------------------- POST (create/update) ----------------------- */
+	/* ----------------------- POST (create/update/unlock) ----------------------- */
 	@Override
 	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-		// staff only
-		if (!isStaff(req)) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"staff login required\"}"); return; }
 		resp.setContentType("application/json; charset=UTF-8");
 		String path = Optional.ofNullable(req.getPathInfo()).orElse("/");
 
+		// staff only for any mutation
+		if (!isStaff(req)) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"staff login required\"}"); return; }
+
 		try {
+			// unlock action: POST /api/companies/{id}?action=unlock
+			if (path.matches("^/\\d+/?$") && "unlock".equalsIgnoreCase(s(req.getParameter("action")))) {
+				long id = Long.parseLong(path.substring(1));
+				dao.unlock(id);
+				Company c = dao.find(id);
+				resp.getWriter().write(Json.one(c));
+				return;
+			}
+
 			Map<String, String> b = readJson(req); // handles arrays without breaking
 			String uid = s(b.get("company_id"));
 			String name = s(b.get("company_name"));
 			String password = b.get("password"); // may be null on update
-
 			List<String> cats = parseCategories(b.get("categories"));
 
 			if (uid.isBlank() || name.isBlank()) {
@@ -192,7 +202,6 @@ public class CompaniesApiServlet extends HttpServlet {
 		while (i < raw.length()) {
 			char c = raw.charAt(i);
 			if (c == '"') {
-				// toggle string state unless escaped
 				boolean escaped = i > 0 && raw.charAt(i - 1) == '\\';
 				if (!escaped) inStr = !inStr;
 			} else if (!inStr) {
@@ -255,6 +264,8 @@ public class CompaniesApiServlet extends HttpServlet {
 					+ ",\"company_id\":\"" + c.companyUid.replace("\\","\\\\").replace("\"","\\\"") + "\""
 					+ ",\"company_name\":\"" + c.name.replace("\\","\\\\").replace("\"","\\\"") + "\""
 					+ ",\"categories\":[" + cats + "]"
+					+ ",\"failed_attempts\":" + c.failedAttempts
+					+ ",\"locked\":" + (c.locked ? "true" : "false")
 					+ "}";
 		}
 		static String list(List<Company> list) {

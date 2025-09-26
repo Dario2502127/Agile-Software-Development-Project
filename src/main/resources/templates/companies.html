@@ -1,11 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>TenderPoint — Companies</title>
-  <link rel="stylesheet" href="css/styles.css"/>
-  <link rel="stylesheet" href="css/companies.css"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Companies — TenderPoint</title>
+  <link rel="stylesheet" href="css/styles.css" />
   <script defer src="js/companies.js"></script>
 </head>
 <body>
@@ -18,73 +17,71 @@
         <p>Company administration</p>
       </div>
     </div>
-    <nav aria-label="Primary">
+    <nav>
       <a class="nav-link" href="./">Home</a>
-      {authLink}
+      <a class="nav-link" href="logout">Logout</a>
     </nav>
   </header>
 
-  <!-- ---------- CREATE COMPANY (moved to top) ---------- -->
-  <div class="admin-header">
-    <h3 class="admin-title">Create Company</h3>
-    <!-- keeps the quick button (resets form & focuses); optional -->
-    <button id="new-btn" class="btn btn-primary" type="button">New Company</button>
-  </div>
-
-  <section class="admin-card form-card" id="create-card">
-    <h3 id="form-title" class="form-head" style="margin-top:0">Create Company</h3>
+  <!-- Create / Edit form AT THE TOP -->
+  <section id="form-card" class="auth-card form-card" style="display:block">
+    <h2 id="form-title">Create Company</h2>
 
     <div class="form-grid">
+      <input type="hidden" id="c-id" />
+
       <div class="form-field">
-        <label for="f-uid">Company ID</label>
-        <input id="f-uid" class="input" placeholder="Unique login / ID"/>
+        <label for="c-uid">Company ID</label>
+        <input id="c-uid" type="text" placeholder="Unique login / ID" />
       </div>
 
       <div class="form-field">
-        <label for="f-name">Name</label>
-        <input id="f-name" class="input" placeholder="Company name"/>
+        <label for="c-name">Name</label>
+        <input id="c-name" type="text" placeholder="Company name" />
       </div>
 
-      <div class="form-field">
-        <label for="f-pass">Password <span class="hint">(leave empty to keep current on edit)</span></label>
-        <input id="f-pass" class="input" type="password" placeholder="Set/Change password"/>
+      <div class="form-field form-field-span">
+        <label for="c-pass">Password <span class="hint">(leave empty to keep current on edit)</span></label>
+        <input id="c-pass" type="password" placeholder="Set/Change password" />
       </div>
 
-      <div class="form-field">
+      <div class="form-field form-field-span">
         <label>Categories</label>
-        <div id="cat-pills" class="pill-wrap"></div>
+        <div id="c-cats" style="display:flex;flex-wrap:wrap;gap:10px">
+          <!-- chips injected by JS -->
+        </div>
+        <div class="hint">Select one or more categories.</div>
       </div>
     </div>
 
-    <div class="actions">
-      <button id="save-btn" class="btn btn-primary">Save</button>
-      <button id="reset-btn" class="btn btn-secondary" type="button">Reset</button>
-      <span id="form-msg" class="hint" style="margin-left:8px"></span>
+    <div class="form-actions">
+      <button id="btn-save" class="btn" type="button">Save</button>
+      <button id="btn-reset" class="btn btn-secondary" type="button">Reset</button>
     </div>
-
-    <input type="hidden" id="f-id" value="">
   </section>
 
-  <!-- ---------- COMPANIES LIST (now below form) ---------- -->
-  <div class="admin-header" style="margin-top:18px">
-    <h3 class="admin-title">Companies</h3>
-  </div>
+  <!-- List -->
+  <section class="tender-list">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px">
+      <h3 style="margin:0">Companies</h3>
+      <button id="btn-new" class="cta" type="button">New Company</button>
+    </div>
 
-  <section class="admin-card list-card">
-    <div class="list-inner">
-      <table class="table">
+    <div class="card">
+      <table>
         <thead>
         <tr>
-          <th style="width:90px">ID</th>
-          <th style="width:180px">Company ID</th>
-          <th style="width:240px">Name</th>
+          <th>ID</th>
+          <th>Company ID</th>
+          <th>Name</th>
           <th>Categories</th>
-          <th style="width:210px"></th>
+          <th>Status</th>
+          <th><!-- actions --></th>
         </tr>
         </thead>
         <tbody id="companies-body"></tbody>
       </table>
-      <div id="empty-companies" class="empty">No companies yet.</div>
+      <div id="companies-empty" style="display:none;padding:14px;color:var(--muted)">No companies yet.</div>
     </div>
   </section>
 
@@ -92,16 +89,5 @@
     <div>© <span id="year"></span> TenderPoint — Trusted procurement.</div>
   </footer>
 </main>
-
-<script>
-  // Optional: when clicking "New Company", scroll to the form for convenience
-  document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("new-btn");
-    btn?.addEventListener("click", () => {
-      document.getElementById("f-uid")?.focus();
-      document.getElementById("create-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  });
-</script>
 </body>
 </html>

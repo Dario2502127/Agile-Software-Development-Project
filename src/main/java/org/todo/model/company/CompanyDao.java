@@ -16,6 +16,10 @@ public class CompanyDao {
 		c.companyUid = rs.getString("company_uid");
 		c.name = rs.getString("name");
 		c.passwordHash = rs.getString("password_hash");
+
+		// tolerate DBs that don't have the new columns yet (first run before Schema.ensure)
+		try { c.failedAttempts = rs.getInt("failed_attempts"); } catch (SQLException ignore) { c.failedAttempts = 0; }
+		try { c.locked = rs.getBoolean("locked"); }            catch (SQLException ignore) { c.locked = false; }
 		return c;
 	}
 
@@ -26,9 +30,7 @@ public class CompanyDao {
 			StringBuilder b = new StringBuilder(d.length * 2);
 			for (byte x : d) b.append(String.format("%02x", x));
 			return b.toString();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+		} catch (Exception e) { throw new RuntimeException(e); }
 	}
 
 	/* ---------------- helpers for category normalization ---------------- */
@@ -176,11 +178,13 @@ public class CompanyDao {
 		try (Connection c = DB.get()) {
 			c.setAutoCommit(false);
 			try (PreparedStatement ps = c.prepareStatement(
-					"insert into companies(company_uid, name, password_hash) values(?,?,?)",
+					"insert into companies(company_uid, name, password_hash, failed_attempts, locked) values(?,?,?,?,?)",
 					Statement.RETURN_GENERATED_KEYS)) {
 				ps.setString(1, uid);
 				ps.setString(2, name);
 				ps.setString(3, sha256(rawPassword == null ? "" : rawPassword));
+				ps.setInt(4, 0);
+				ps.setBoolean(5, false);
 				ps.executeUpdate();
 				ResultSet keys = ps.getGeneratedKeys();
 				keys.next();
@@ -234,6 +238,38 @@ public class CompanyDao {
 	public void delete(long id) throws SQLException {
 		try (Connection c = DB.get();
 			 PreparedStatement ps = c.prepareStatement("delete from companies where id=?")) {
+			ps.setLong(1, id);
+			ps.executeUpdate();
+		}
+	}
+
+	/* ---------------- lockout helpers ---------------- */
+
+	/** Increments attempts; locks when reaching 5. */
+	public void recordFailedLogin(String uid) throws SQLException {
+		try (Connection c = DB.get();
+			 PreparedStatement ps = c.prepareStatement(
+					 "update companies set failed_attempts = failed_attempts + 1, " +
+							 "locked = case when failed_attempts + 1 >= 5 then true else locked end " +
+							 "where company_uid=?")) {
+			ps.setString(1, uid);
+			ps.executeUpdate();
+		}
+	}
+
+	public void resetLoginFailures(String uid) throws SQLException {
+		try (Connection c = DB.get();
+			 PreparedStatement ps = c.prepareStatement(
+					 "update companies set failed_attempts=0 where company_uid=?")) {
+			ps.setString(1, uid);
+			ps.executeUpdate();
+		}
+	}
+
+	public void unlock(long id) throws SQLException {
+		try (Connection c = DB.get();
+			 PreparedStatement ps = c.prepareStatement(
+					 "update companies set locked=false, failed_attempts=0 where id=?")) {
 			ps.setLong(1, id);
 			ps.executeUpdate();
 		}

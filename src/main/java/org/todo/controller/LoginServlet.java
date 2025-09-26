@@ -45,13 +45,37 @@ public class LoginServlet extends HttpServlet {
 
 		try {
 			Company c = companyDao.findByUid(companyId);
-			if (c == null || !hash(password).equalsIgnoreCase(c.passwordHash)) {
+			// Unknown id → generic error (don't reveal)
+			if (c == null) {
 				req.setAttribute("message", "Invalid company-id or password.");
 				TemplateEngine.process("login.html", req, resp);
 				return;
 			}
 
-			// Success: set company session (and clear any staff login)
+			// Locked?
+			if (c.locked) {
+				req.setAttribute("message", "Account is locked due to too many failed attempts. Please contact city staff.");
+				TemplateEngine.process("login.html", req, resp);
+				return;
+			}
+
+			boolean ok = hash(password).equalsIgnoreCase(c.passwordHash);
+			if (!ok) {
+				companyDao.recordFailedLogin(companyId);
+				// Refresh to compute attempts left
+				Company after = companyDao.findByUid(companyId);
+				int left = Math.max(0, 5 - (after == null ? 0 : after.failedAttempts));
+				String msg = (after != null && after.locked)
+						? "Account locked due to too many failed attempts."
+						: ("Invalid company-id or password." + (left > 0 ? " Attempts left: " + left + "." : ""));
+				req.setAttribute("message", msg);
+				TemplateEngine.process("login.html", req, resp);
+				return;
+			}
+
+			// Success → reset attempts, create session
+			companyDao.resetLoginFailures(companyId);
+
 			var ses = req.getSession(true);
 			ses.setAttribute("username", c.companyUid);   // used by BidsApiServlet
 			ses.setAttribute("companyName", c.name);

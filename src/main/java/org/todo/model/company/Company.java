@@ -9,4 +9,8 @@ public class Company {
 	public String name;
 	public String passwordHash;    // SHA-256 hex (never expose over UI)
 	public List<String> categories = new ArrayList<>();
+
+	// --- lockout ---
+	public int failedAttempts = 0;
+	public boolean locked = false;
 }
