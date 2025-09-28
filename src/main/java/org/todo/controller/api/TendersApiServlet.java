@@ -1,16 +1,25 @@
 package org.todo.controller.api;
 
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+
+import org.todo.model.company.Company;
+import org.todo.model.company.CompanyDao;
+import org.todo.model.db.DB;
 import org.todo.model.tender.BidDao;
 import org.todo.model.tender.Tender;
 import org.todo.model.tender.TenderDao;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -22,15 +31,17 @@ import java.util.*;
  *  GET  /api/tenders/{id}/bids      -> bids for tender (same visibility rule)
  *
  *  POST /api/tenders                -> create tender (JSON body)
- *  POST /api/tenders/{id}/bids      -> create bid   (form body)
+ *  POST /api/tenders/{id}/bids      -> create bid   (multipart form; requires logged-in company & category eligibility)
  *  POST /api/tenders/{id}?action=...  (staff only):
  *        action=delete | close | award&bid_id=...&reason=...
  */
 @WebServlet("/api/tenders/*")
+@MultipartConfig(maxFileSize = 15 * 1024 * 1024) // to receive assignment file
 public class TendersApiServlet extends HttpServlet {
 
 	private final TenderDao tenderDao = new TenderDao();
 	private final BidDao bidDao = new BidDao();
+	private final CompanyDao companyDao = new CompanyDao();
 
 	/* ----------------------- helpers ----------------------- */
 
@@ -38,24 +49,12 @@ public class TendersApiServlet extends HttpServlet {
 		Object staffObj = req.getSession().getAttribute("staffId");
 		return staffObj != null && !staffObj.toString().isBlank();
 	}
-
 	private static String s(String v) { return v == null ? "" : v.trim(); }
 
-	// Minimal form param reader (works for application/x-www-form-urlencoded)
-	private static final class URLSearchParams {
-		private final Map<String, String> m = new HashMap<>();
-		URLSearchParams(HttpServletRequest req) throws IOException {
-			String body = req.getReader().lines().reduce("", (a, b) -> a + b);
-			for (String pair : body.split("&")) {
-				if (pair.isBlank()) continue;
-				int i = pair.indexOf('=');
-				String k = i < 0 ? pair : pair.substring(0, i);
-				String v = i < 0 ? ""   : pair.substring(i + 1);
-				m.put(java.net.URLDecoder.decode(k, java.nio.charset.StandardCharsets.UTF_8),
-						java.net.URLDecoder.decode(v, java.nio.charset.StandardCharsets.UTF_8));
-			}
-		}
-		String get(String k){ return m.get(k); }
+	private static String normalizeCategory(String x) {
+		if (x == null) return "";
+		// collapse whitespace and lowercase for tolerant matching
+		return x.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
 	}
 
 	private static Map<String, String> readJsonObject(HttpServletRequest req) throws IOException {
@@ -88,7 +87,6 @@ public class TendersApiServlet extends HttpServlet {
 		}
 		return out;
 	}
-
 	private static int indexOfColonOutsideQuotes(String s) {
 		boolean in = false;
 		for (int i = 0; i < s.length(); i++) {
@@ -98,12 +96,10 @@ public class TendersApiServlet extends HttpServlet {
 		}
 		return -1;
 	}
-
 	private static String unq(String s) {
 		if (s.startsWith("\"") && s.endsWith("\"")) s = s.substring(1, s.length() - 1);
 		return s.replace("\\\"", "\"").replace("\\\\", "\\");
 	}
-
 	private static String jsonError(Exception e) {
 		String msg = e.getMessage() == null ? e.toString() : e.getMessage();
 		return "{\"error\":\"" + msg.replace("\"","\\\"") + "\"}";
@@ -124,6 +120,7 @@ public class TendersApiServlet extends HttpServlet {
 					+ ",\"estimated_price\":" + (t.estimatedPrice == null ? "null" : t.estimatedPrice.toPlainString())
 					+ ",\"winner_reason\":" + escStr(t.winnerReason)
 					+ ",\"winner_bid_id\":" + (t.winnerBidId == null ? "null" : t.winnerBidId)
+					+ ",\"category\":" + escStr(t.category)
 					+ "}";
 		}
 		static String tenders(List<Tender> list) {
@@ -234,11 +231,11 @@ public class TendersApiServlet extends HttpServlet {
 
 				Tender t = new Tender();
 				t.name = s(body.get("name"));
-				t.noticeDate = LocalDate.parse(s(body.get("notice_date")));
-				t.closeDate = LocalDate.parse(s(body.get("close_date")));
+				t.noticeDate = java.time.LocalDate.parse(s(body.get("notice_date")));
+				t.closeDate = java.time.LocalDate.parse(s(body.get("close_date")));
 
 				String dd = body.get("disclose_date");
-				t.discloseDate = (dd == null || dd.isBlank()) ? null : LocalDate.parse(dd);
+				t.discloseDate = (dd == null || dd.isBlank()) ? null : java.time.LocalDate.parse(dd);
 
 				String status = body.get("status");
 				t.status = (status == null || status.isBlank()) ? "Open" : status;
@@ -253,6 +250,9 @@ public class TendersApiServlet extends HttpServlet {
 				String price = body.get("estimated_price");
 				t.estimatedPrice = (price == null || price.isBlank()) ? null : new BigDecimal(price);
 
+				// single category
+				t.category = s(body.get("category"));
+
 				long id = tenderDao.create(t);
 				t.id = id;
 
@@ -261,16 +261,100 @@ public class TendersApiServlet extends HttpServlet {
 				return;
 			}
 
-			// CREATE bid -> POST /api/tenders/{id}/bids  (form body)
+			// CREATE bid -> POST /api/tenders/{id}/bids  (multipart form) + eligibility checks
 			if (path.matches("^/\\d+/bids/?$")) {
+				// must be logged in as a company
+				var session = req.getSession(false);
+				String loginUid = (session == null) ? null : (String) session.getAttribute("username");
+				Long companyDbId = (session == null) ? null : (Long) session.getAttribute("companyDbId");
+				String companyNameFromSes = (session == null) ? null : (String) session.getAttribute("companyName");
+				if (loginUid == null || loginUid.isBlank()) {
+					resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+					resp.getWriter().write("{\"error\":\"login required\"}");
+					return;
+				}
+
 				long tenderId = Long.parseLong(path.split("/")[1]);
-				var p = new URLSearchParams(req);
+				Tender t = tenderDao.find(tenderId);
+				if (t == null) {
+					resp.setStatus(404);
+					resp.getWriter().write("{\"error\":\"tender not found\"}");
+					return;
+				}
 
-				String companyId = s(p.get("company_id"));
-				String companyName = s(p.get("company_name"));
-				BigDecimal bidPrice = new BigDecimal(s(p.get("bid_price")));
+				// date/status guards
+				LocalDate today = LocalDate.now();
+				String st = (t.status == null ? "" : t.status).toLowerCase(Locale.ROOT);
+				if (st.contains("closed") || st.contains("award")) {
+					resp.setStatus(403);
+					resp.getWriter().write("{\"error\":\"tender is not accepting bids\"}");
+					return;
+				}
+				if (t.noticeDate != null && today.isBefore(t.noticeDate)) {
+					resp.setStatus(403);
+					resp.getWriter().write("{\"error\":\"bidding not open yet\"}");
+					return;
+				}
+				if (t.closeDate != null && !today.isBefore(t.closeDate)) {
+					resp.setStatus(403);
+					resp.getWriter().write("{\"error\":\"bidding period is over\"}");
+					return;
+				}
 
-				bidDao.create(tenderId, companyId, companyName, bidPrice);
+				// category eligibility (companies may have multiple categories)
+				String tenderCatNorm = normalizeCategory(t.category);
+				if (!tenderCatNorm.isEmpty()) {
+					Company co = (companyDbId != null)
+							? companyDao.find(companyDbId)
+							: companyDao.findByUid(loginUid);
+					if (co == null) {
+						resp.setStatus(403);
+						resp.getWriter().write("{\"error\":\"company profile not found\"}");
+						return;
+					}
+					boolean ok = false;
+					for (String c : co.categories) {
+						if (normalizeCategory(c).equals(tenderCatNorm)) { ok = true; break; }
+					}
+					if (!ok) {
+						resp.setStatus(403);
+						resp.getWriter().write("{\"error\":\"company not eligible for this tender category\"}");
+						return;
+					}
+				}
+
+				// read multipart params
+				String companyId   = s(req.getParameter("company_id"));
+				String companyName = s(req.getParameter("company_name"));
+				String priceStr    = s(req.getParameter("bid_price"));
+				if (companyId.isEmpty())   companyId   = loginUid;
+				if (companyName.isEmpty()) companyName = (companyNameFromSes == null || companyNameFromSes.isBlank())
+						? loginUid : companyNameFromSes;
+				if (priceStr.isEmpty()) {
+					resp.setStatus(400);
+					resp.getWriter().write("{\"error\":\"bid_price required\"}");
+					return;
+				}
+				BigDecimal bidPrice = new BigDecimal(priceStr);
+
+				long bidId = bidDao.create(tenderId, companyId, companyName, bidPrice);
+
+				// optional assignment file
+				Part part = null;
+				try { part = req.getPart("assignment"); } catch (Exception ignored) {}
+				if (part != null && part.getSize() > 0) {
+					try (Connection c = DB.get();
+						 PreparedStatement ps = c.prepareStatement(
+								 "insert into bid_files(bid_id, filename, content_type, data) values(?,?,?,?)");
+						 InputStream in = part.getInputStream()) {
+						ps.setLong(1, bidId);
+						ps.setString(2, s(part.getSubmittedFileName()));
+						ps.setString(3, s(part.getContentType()));
+						ps.setBinaryStream(4, in, (int) part.getSize());
+						ps.executeUpdate();
+					}
+				}
+
 				resp.getWriter().write("{\"ok\":true}");
 				return;
 			}
@@ -284,7 +368,7 @@ public class TendersApiServlet extends HttpServlet {
 				}
 
 				long tenderId = Long.parseLong(path.substring(1));
-				String action = s(req.getParameter("action")).toLowerCase();
+				String action = s(req.getParameter("action")).toLowerCase(Locale.ROOT);
 
 				switch (action) {
 					case "delete" -> tenderDao.delete(tenderId);

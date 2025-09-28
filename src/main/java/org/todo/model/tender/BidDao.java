@@ -64,4 +64,70 @@ public class BidDao {
 			ps.executeUpdate();
 		}
 	}
+
+    /* =========================
+       File attachment helpers
+       ========================= */
+
+	/**
+	 * Save (or replace) the attachment for a bid.
+	 * Table schema guarantees a single file per bid (unique on bid_id).
+	 */
+	public void saveFile(long bidId, String filename, String contentType, byte[] data) throws SQLException {
+		try (Connection c = DB.get()) {
+			c.setAutoCommit(false);
+			try {
+				// Ensure only one file per bid (unique in schema). Replace if exists.
+				try (PreparedStatement del = c.prepareStatement("delete from bid_files where bid_id=?")) {
+					del.setLong(1, bidId);
+					del.executeUpdate();
+				}
+				try (PreparedStatement ins = c.prepareStatement("""
+                        insert into bid_files(bid_id, filename, content_type, data)
+                        values(?,?,?,?)
+                    """)) {
+					ins.setLong(1, bidId);
+					ins.setString(2, filename);
+					ins.setString(3, contentType);
+					ins.setBytes(4, data);
+					ins.executeUpdate();
+				}
+				c.commit();
+			} catch (SQLException e) {
+				c.rollback();
+				throw e;
+			} finally {
+				c.setAutoCommit(true);
+			}
+		}
+	}
+
+	/** Small DTO for downloads (optional). */
+	public static final class BidFile {
+		public Long id;
+		public Long bidId;
+		public String filename;
+		public String contentType;
+		public byte[] data;
+	}
+
+	/** Optional: read a file by its id (useful for a /api/bid-file endpoint). */
+	public BidFile findFile(long fileId) throws SQLException {
+		try (Connection c = DB.get();
+			 PreparedStatement ps = c.prepareStatement("""
+                 select id, bid_id, filename, content_type, data
+                 from bid_files where id=?
+             """)) {
+			ps.setLong(1, fileId);
+			ResultSet rs = ps.executeQuery();
+			if (!rs.next()) return null;
+			BidFile f = new BidFile();
+			f.id = rs.getLong("id");
+			f.bidId = rs.getLong("bid_id");
+			f.filename = rs.getString("filename");
+			f.contentType = rs.getString("content_type");
+			f.data = rs.getBytes("data");
+			return f;
+		}
+	}
 }

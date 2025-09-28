@@ -20,6 +20,21 @@ function badgeClass(status) {
   return "badge-closed";
 }
 
+// (optional duplicate of the inline updater; harmless if both run)
+function updateLocalTime() {
+  const el = document.getElementById("local-datetime");
+  if (!el) return;
+  const now = new Date();
+  const opts = {
+    weekday: "short", year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", second: "2-digit"
+  };
+  el.textContent = now.toLocaleString(undefined, opts);
+}
+
+// --- helpers for category matching ---
+const norm = (x) => (x || "").trim().replace(/\s+/g, " ").toLowerCase();
+
 let ALL_TENDERS = [];
 let CURRENT_FILTERED = [];
 const PAGE_SIZE = 10;
@@ -91,8 +106,8 @@ function renderTable(rows) {
 }
 
 function priceMatchesFilter(priceStr, filter) {
-  if (!filter) return true;                      // Any value
-  if (priceStr == null || priceStr === "") return false; // no price -> cannot match specific ranges
+  if (!filter) return true;
+  if (priceStr == null || priceStr === "") return false;
   const p = parseFloat(priceStr);
   if (Number.isNaN(p)) return false;
 
@@ -107,10 +122,12 @@ function priceMatchesFilter(priceStr, filter) {
 function applyFilters() {
   const q = (document.getElementById("q")?.value || "").trim().toLowerCase();
   const type = (document.getElementById("type")?.value || "").trim().toLowerCase();
-  const value = (document.getElementById("value")?.value || "").trim(); // "<50k" | "50-500" | ">500" | ""
+  const value = (document.getElementById("value")?.value || "").trim();
+  const category = (document.getElementById("category")?.value || "").trim();
 
   let list = [...ALL_TENDERS];
 
+  // Search
   if (q) {
     list = list.filter(t =>
         String(t.id).includes(q) ||
@@ -118,21 +135,46 @@ function applyFilters() {
     );
   }
 
+  // Type
   if (type) {
     if (type.includes("open")) list = list.filter(t => (t.status || "").toLowerCase().includes("open"));
     else if (type.includes("award")) list = list.filter(t => (t.status || "").toLowerCase().includes("award"));
     else if (type.includes("close")) list = list.filter(t => (t.status || "").toLowerCase().includes("close"));
   }
 
-  // Estimated value filter (works only when a price is present)
+  // Estimated value
   if (value) {
     list = list.filter(t => priceMatchesFilter(t.estimated_price, value));
+  }
+
+  // NEW: Category
+  if (category) {
+    const needle = norm(category);
+    list = list.filter(t => norm(t.category) === needle);
   }
 
   CURRENT_FILTERED = list;
   currentLimit = PAGE_SIZE;
   renderTable(CURRENT_FILTERED.slice(0, currentLimit));
   renderShowMoreIfNeeded();
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById("category");
+  if (!sel) return;
+
+  const uniq = Array.from(
+      new Set(
+          ALL_TENDERS
+              .map(t => (t.category || "").trim())
+              .filter(Boolean)
+      )
+  ).sort((a,b) => a.localeCompare(b));
+
+  const keep = sel.value;
+  sel.innerHTML = `<option value="">All categories</option>` +
+      uniq.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  if (keep) sel.value = keep;
 }
 
 async function init() {
@@ -142,34 +184,36 @@ async function init() {
   try {
     ALL_TENDERS = await fetchTenders();
 
+    // Populate category filter from data
+    populateCategoryFilter();
+
     const active = ALL_TENDERS.filter(t => (t.status || "").toLowerCase().includes("open")).length;
     const activeNode = document.getElementById("active-count");
     if (activeNode) activeNode.textContent = String(active);
     const totalNode = document.getElementById("total-tenders");
     if (totalNode) totalNode.textContent = String(ALL_TENDERS.length);
 
-    // Initial table render (no filters) — only first 10
     CURRENT_FILTERED = [...ALL_TENDERS];
     currentLimit = PAGE_SIZE;
     renderTable(CURRENT_FILTERED.slice(0, currentLimit));
     renderShowMoreIfNeeded();
 
-    // Search applies only on submit (no live filter)
     const searchForm = document.querySelector('form.searchbar');
     if (searchForm) {
       searchForm.addEventListener("submit", (e) => { e.preventDefault(); applyFilters(); });
     }
 
-    // Filters apply only when clicking the button
     document.getElementById("apply-filters")?.addEventListener("click", () => applyFilters());
-
-    // We intentionally remove onchange listeners so filters only run on button click.
   } catch (err) {
     console.error(err);
     CURRENT_FILTERED = [];
     renderTable([]);
     renderShowMoreIfNeeded();
   }
+
+  // Start/refresh clock (harmless if inline script already running)
+  updateLocalTime();
+  setInterval(updateLocalTime, 1000);
 }
 
 document.addEventListener("DOMContentLoaded", init);

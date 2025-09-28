@@ -26,6 +26,29 @@
     </nav>
   </header>
 
+  <!-- Local date/time, centered -->
+  <div id="local-datetime"
+       style="text-align:center;margin:6px 0 14px;font-weight:600;color:var(--muted);"
+       aria-live="polite">—</div>
+
+  <!-- Inline safety net so the time shows even if Script.js is cached -->
+  <script>
+    (function(){
+      function update() {
+        var el = document.getElementById('local-datetime');
+        if (!el) return;
+        var now = new Date();
+        var opts = {
+          weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        };
+        el.textContent = now.toLocaleString(undefined, opts);
+      }
+      update();
+      setInterval(update, 1000);
+    })();
+  </script>
+
   <section class="hero" role="region" aria-labelledby="hero-title">
     <div class="hero-left">
       <h2 id="hero-title">Find the right tenders. Win the right bids.</h2>
@@ -50,7 +73,11 @@
 
     <aside class="right-col card">
       <div class="filters">
-        <!-- Sector removed -->
+        <!-- NEW: Category filter -->
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="">All categories</option>
+        </select>
 
         <label for="value">Estimated value</label>
         <select id="value">
