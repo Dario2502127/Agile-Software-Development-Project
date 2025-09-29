@@ -27,12 +27,12 @@
 
         <form id="tform" class="form-grid" novalidate>
             <div class="form-field">
-                <label for="name">Tender name</label>
+                <label for="name">Tender name *</label>
                 <input id="name" type="text" required />
             </div>
 
             <div class="form-field">
-                <label for="category">Category of business</label>
+                <label for="category">Category of business *</label>
                 <select id="category" required>
                     <option value="">Select category</option>
                     <option>Computer System</option>
@@ -45,23 +45,26 @@
             </div>
 
             <div class="form-field">
-                <label for="notice">Notice date</label>
+                <label for="notice">Notice date *</label>
                 <input id="notice" type="date" required />
             </div>
 
             <div class="form-field">
-                <label for="close">Close date</label>
+                <label for="close">Close date *</label>
                 <input id="close" type="date" required />
             </div>
 
             <div class="form-field">
-                <label for="disclose">Disclose date (optional)</label>
-                <input id="disclose" type="date" />
+                <!-- CHANGED: disclose is now required -->
+                <label for="disclose">Disclose date *</label>
+                <input id="disclose" type="date" required />
             </div>
 
             <div class="form-field">
-                <label for="price">Estimated price (optional)</label>
-                <input id="price" type="number" step="0.01" />
+                <!-- price already required -->
+                <label for="price">Estimated price <span aria-hidden="true">*</span></label>
+                <input id="price" type="number" step="0.01" min="0.01" required
+                       placeholder="Enter estimated price" />
             </div>
 
             <div class="form-field form-field-span">

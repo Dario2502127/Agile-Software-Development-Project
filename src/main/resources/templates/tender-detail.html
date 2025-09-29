@@ -40,7 +40,11 @@
         <div style="display:grid; grid-template-columns: 1.2fr 2fr auto auto; gap:10px; align-items:center">
             <select id="award-bid" class="input" title="Select winning bid"></select>
             <input id="award-reason" class="input" placeholder="Reason / notes for awarding (optional)" />
-            <button id="btn-award" class="btn">Award</button>
+            <div style="display:flex; gap:10px; align-items:center">
+                <!-- NEW: Edit button lives here; JS will unhide and ensure correct link -->
+                <a id="btn-edit" class="btn" href="tender-edit?id={tenderId}" style="display:none">Edit</a>
+                <button id="btn-award" class="btn">Award</button>
+            </div>
             <div style="display:flex; gap:10px; justify-content:flex-end">
                 <button id="btn-close" class="btn btn-secondary" type="button">Close</button>
                 <button id="btn-delete" class="btn btn-danger" type="button">Delete</button>

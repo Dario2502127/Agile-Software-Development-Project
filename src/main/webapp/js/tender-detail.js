@@ -36,7 +36,20 @@ async function postForm(url, data){
     return await r.json();
 }
 
-/** Render tender header. winnerName shows the company instead of an id. */
+function isStaff(){
+    const d = document.getElementById("session-data");
+    return !!(d && (d.dataset.isStaff || "").trim());
+}
+
+function currentTenderId(){
+    const d = document.getElementById("session-data");
+    const fromAttr = d ? (d.dataset.tenderId || "").trim() : "";
+    if (fromAttr) return fromAttr;
+    const u = new URL(window.location.href);
+    return u.searchParams.get("id") || "";
+}
+
+/** Render tender header. */
 function renderTenderHead(t, winnerName){
     const host = document.getElementById("tender-head");
     if(!host) return;
@@ -94,19 +107,6 @@ function renderBids(list){
     }
 }
 
-function currentTenderId(){
-    const d = document.getElementById("session-data");
-    const fromAttr = d ? (d.dataset.tenderId || "").trim() : "";
-    if (fromAttr) return fromAttr;
-    const u = new URL(window.location.href);
-    return u.searchParams.get("id") || "";
-}
-
-function isStaff(){
-    const d = document.getElementById("session-data");
-    return !!(d && (d.dataset.isStaff || "").trim());
-}
-
 async function loadAll(){
     const id = currentTenderId();
     if (!id) return;
@@ -138,9 +138,16 @@ async function loadAll(){
         renderBids([]); // shows empty state but keeps header
     }
 
-    // Show staff panel if applicable
+    // Show staff panel + edit link if applicable
     const panel = document.getElementById("staff-panel");
-    if (panel && isStaff()) panel.style.display = "block";
+    if (panel && isStaff()) {
+        panel.style.display = "block";
+        const edit = document.getElementById("btn-edit");
+        if (edit) {
+            edit.style.display = "inline-block";
+            edit.href = "tender-edit?id=" + encodeURIComponent(id); // keep correct if URL had no id at render time
+        }
+    }
 
     const y = document.getElementById("year"); if (y) y.textContent = new Date().getFullYear();
 }

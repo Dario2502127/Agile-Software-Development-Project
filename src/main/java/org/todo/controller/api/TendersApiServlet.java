@@ -26,17 +26,17 @@ import java.util.*;
 /**
  * REST-ish API for tenders & bids.
  *
- *  GET  /api/tenders                -> list tenders (visibility: staff=all, others: notice_date<=today)
- *  GET  /api/tenders/{id}           -> tender detail (JSON) (same visibility rule)
+ *  GET  /api/tenders                -> list tenders (visibility: staff=all, others: notice_date<=today; price hidden until disclosed)
+ *  GET  /api/tenders/{id}           -> tender detail (same visibility rule)
  *  GET  /api/tenders/{id}/bids      -> bids for tender (same visibility rule)
  *
- *  POST /api/tenders                -> create tender (JSON body)
+ *  POST /api/tenders                -> create tender (JSON body; estimated_price REQUIRED; disclose_date REQUIRED)
  *  POST /api/tenders/{id}/bids      -> create bid   (multipart form; requires logged-in company & category eligibility)
  *  POST /api/tenders/{id}?action=...  (staff only):
  *        action=delete | close | award&bid_id=...&reason=...
  */
 @WebServlet("/api/tenders/*")
-@MultipartConfig(maxFileSize = 15 * 1024 * 1024) // to receive assignment file
+@MultipartConfig(maxFileSize = 15 * 1024 * 1024)
 public class TendersApiServlet extends HttpServlet {
 
 	private final TenderDao tenderDao = new TenderDao();
@@ -53,8 +53,11 @@ public class TendersApiServlet extends HttpServlet {
 
 	private static String normalizeCategory(String x) {
 		if (x == null) return "";
-		// collapse whitespace and lowercase for tolerant matching
 		return x.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+	}
+
+	private static boolean isDisclosedToPublic(Tender t) {
+		return t.discloseDate != null && !t.discloseDate.isAfter(LocalDate.now());
 	}
 
 	private static Map<String, String> readJsonObject(HttpServletRequest req) throws IOException {
@@ -105,7 +108,7 @@ public class TendersApiServlet extends HttpServlet {
 		return "{\"error\":\"" + msg.replace("\"","\\\"") + "\"}";
 	}
 
-	/* ---------- JSON helpers for this servlet ---------- */
+	/* ---------- JSON helpers ---------- */
 	private static final class Json {
 		static String tender(Tender t) {
 			return "{"
@@ -164,18 +167,16 @@ public class TendersApiServlet extends HttpServlet {
 		LocalDate today = LocalDate.now();
 
 		try {
-			// /api/tenders  (list)
 			if ("/".equals(path)) {
 				var list = tenderDao.listAll();
 				if (!staff) {
-					// Only tenders with notice_date <= today for non-staff
 					list.removeIf(t -> t.noticeDate != null && t.noticeDate.isAfter(today));
+					for (Tender t : list) if (!isDisclosedToPublic(t)) t.estimatedPrice = null;
 				}
 				resp.getWriter().write(Json.tenders(list));
 				return;
 			}
 
-			// /api/tenders/{id}/bids  (respect visibility)
 			if (path.matches("^/\\d+/bids/?$")) {
 				long id = Long.parseLong(path.split("/")[1]);
 				if (!staff) {
@@ -191,21 +192,14 @@ public class TendersApiServlet extends HttpServlet {
 				return;
 			}
 
-			// /api/tenders/{id} (detail)  (respect visibility)
 			if (path.matches("^/\\d+/?$")) {
 				long id = Long.parseLong(path.substring(1));
 				Tender t = tenderDao.find(id);
-				if (t == null) {
-					resp.setStatus(404);
-					resp.getWriter().write("{\"error\":\"not found\"}");
-					return;
-				}
+				if (t == null) { resp.setStatus(404); resp.getWriter().write("{\"error\":\"not found\"}"); return; }
 				if (!staff && t.noticeDate != null && t.noticeDate.isAfter(today)) {
-					// Hide tenders before notice to non-staff
-					resp.setStatus(404);
-					resp.getWriter().write("{\"error\":\"not found\"}");
-					return;
+					resp.setStatus(404); resp.getWriter().write("{\"error\":\"not found\"}"); return;
 				}
+				if (!staff && !isDisclosedToPublic(t)) t.estimatedPrice = null;
 				resp.getWriter().write(Json.tender(t));
 				return;
 			}
@@ -225,32 +219,55 @@ public class TendersApiServlet extends HttpServlet {
 		String path = Optional.ofNullable(req.getPathInfo()).orElse("/");
 
 		try {
-			// CREATE tender  -> POST /api/tenders  (JSON body)
+			// CREATE tender (disclose_date REQUIRED; estimated_price REQUIRED)
 			if ("/".equals(path)) {
 				Map<String, String> body = readJsonObject(req);
 
 				Tender t = new Tender();
 				t.name = s(body.get("name"));
-				t.noticeDate = java.time.LocalDate.parse(s(body.get("notice_date")));
-				t.closeDate = java.time.LocalDate.parse(s(body.get("close_date")));
+				t.noticeDate = LocalDate.parse(s(body.get("notice_date")));
+				t.closeDate  = LocalDate.parse(s(body.get("close_date")));
 
-				String dd = body.get("disclose_date");
-				t.discloseDate = (dd == null || dd.isBlank()) ? null : java.time.LocalDate.parse(dd);
+				// REQUIRED disclose date
+				String dd = s(body.get("disclose_date"));
+				if (dd.isBlank()) {
+					resp.setStatus(400);
+					resp.getWriter().write("{\"error\":\"disclose_date is required\"}");
+					return;
+				}
+				t.discloseDate = LocalDate.parse(dd);
 
 				String status = body.get("status");
 				t.status = (status == null || status.isBlank()) ? "Open" : status;
 
-				// Prefer staff email from session; fall back to provided field
 				Object ses = req.getSession().getAttribute("staffEmail");
 				t.staffEmail = (ses instanceof String && !((String) ses).isBlank())
 						? (String) ses : s(body.getOrDefault("staff_email", "city.staff@example.com"));
 
 				t.description = s(body.get("description"));
 				t.termOfConstruction = s(body.get("term"));
-				String price = body.get("estimated_price");
-				t.estimatedPrice = (price == null || price.isBlank()) ? null : new BigDecimal(price);
 
-				// single category
+				// REQUIRED estimated price
+				String priceRaw = s(body.get("estimated_price"));
+				if (priceRaw.isBlank()) {
+					resp.setStatus(400);
+					resp.getWriter().write("{\"error\":\"estimated_price is required\"}");
+					return;
+				}
+				BigDecimal priceVal;
+				try { priceVal = new BigDecimal(priceRaw); }
+				catch (NumberFormatException nfe) {
+					resp.setStatus(400);
+					resp.getWriter().write("{\"error\":\"estimated_price must be a number\"}");
+					return;
+				}
+				if (priceVal.signum() <= 0) {
+					resp.setStatus(400);
+					resp.getWriter().write("{\"error\":\"estimated_price must be > 0\"}");
+					return;
+				}
+				t.estimatedPrice = priceVal;
+
 				t.category = s(body.get("category"));
 
 				long id = tenderDao.create(t);
@@ -261,9 +278,8 @@ public class TendersApiServlet extends HttpServlet {
 				return;
 			}
 
-			// CREATE bid -> POST /api/tenders/{id}/bids  (multipart form) + eligibility checks
+			// CREATE bid (unchanged business rules)
 			if (path.matches("^/\\d+/bids/?$")) {
-				// must be logged in as a company
 				var session = req.getSession(false);
 				String loginUid = (session == null) ? null : (String) session.getAttribute("username");
 				Long companyDbId = (session == null) ? null : (Long) session.getAttribute("companyDbId");
@@ -276,70 +292,33 @@ public class TendersApiServlet extends HttpServlet {
 
 				long tenderId = Long.parseLong(path.split("/")[1]);
 				Tender t = tenderDao.find(tenderId);
-				if (t == null) {
-					resp.setStatus(404);
-					resp.getWriter().write("{\"error\":\"tender not found\"}");
-					return;
-				}
+				if (t == null) { resp.setStatus(404); resp.getWriter().write("{\"error\":\"tender not found\"}"); return; }
 
-				// date/status guards
 				LocalDate today = LocalDate.now();
 				String st = (t.status == null ? "" : t.status).toLowerCase(Locale.ROOT);
-				if (st.contains("closed") || st.contains("award")) {
-					resp.setStatus(403);
-					resp.getWriter().write("{\"error\":\"tender is not accepting bids\"}");
-					return;
-				}
-				if (t.noticeDate != null && today.isBefore(t.noticeDate)) {
-					resp.setStatus(403);
-					resp.getWriter().write("{\"error\":\"bidding not open yet\"}");
-					return;
-				}
-				if (t.closeDate != null && !today.isBefore(t.closeDate)) {
-					resp.setStatus(403);
-					resp.getWriter().write("{\"error\":\"bidding period is over\"}");
-					return;
-				}
+				if (st.contains("closed") || st.contains("award")) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"tender is not accepting bids\"}"); return; }
+				if (t.noticeDate != null && today.isBefore(t.noticeDate)) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"bidding not open yet\"}"); return; }
+				if (t.closeDate != null && !today.isBefore(t.closeDate)) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"bidding period is over\"}"); return; }
 
-				// category eligibility (companies may have multiple categories)
 				String tenderCatNorm = normalizeCategory(t.category);
 				if (!tenderCatNorm.isEmpty()) {
-					Company co = (companyDbId != null)
-							? companyDao.find(companyDbId)
-							: companyDao.findByUid(loginUid);
-					if (co == null) {
-						resp.setStatus(403);
-						resp.getWriter().write("{\"error\":\"company profile not found\"}");
-						return;
-					}
+					Company co = (companyDbId != null) ? companyDao.find(companyDbId) : companyDao.findByUid(loginUid);
+					if (co == null) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"company profile not found\"}"); return; }
 					boolean ok = false;
-					for (String c : co.categories) {
-						if (normalizeCategory(c).equals(tenderCatNorm)) { ok = true; break; }
-					}
-					if (!ok) {
-						resp.setStatus(403);
-						resp.getWriter().write("{\"error\":\"company not eligible for this tender category\"}");
-						return;
-					}
+					for (String c : co.categories) if (normalizeCategory(c).equals(tenderCatNorm)) { ok = true; break; }
+					if (!ok) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"company not eligible for this tender category\"}"); return; }
 				}
 
-				// read multipart params
 				String companyId   = s(req.getParameter("company_id"));
 				String companyName = s(req.getParameter("company_name"));
 				String priceStr    = s(req.getParameter("bid_price"));
-				if (companyId.isEmpty())   companyId   = loginUid;
-				if (companyName.isEmpty()) companyName = (companyNameFromSes == null || companyNameFromSes.isBlank())
-						? loginUid : companyNameFromSes;
-				if (priceStr.isEmpty()) {
-					resp.setStatus(400);
-					resp.getWriter().write("{\"error\":\"bid_price required\"}");
-					return;
-				}
+				if (companyId.isEmpty())   companyId = loginUid;
+				if (companyName.isEmpty()) companyName = (companyNameFromSes == null || companyNameFromSes.isBlank()) ? loginUid : companyNameFromSes;
+				if (priceStr.isEmpty()) { resp.setStatus(400); resp.getWriter().write("{\"error\":\"bid_price required\"}"); return; }
 				BigDecimal bidPrice = new BigDecimal(priceStr);
 
 				long bidId = bidDao.create(tenderId, companyId, companyName, bidPrice);
 
-				// optional assignment file
 				Part part = null;
 				try { part = req.getPart("assignment"); } catch (Exception ignored) {}
 				if (part != null && part.getSize() > 0) {
@@ -359,13 +338,9 @@ public class TendersApiServlet extends HttpServlet {
 				return;
 			}
 
-			// STAFF actions -> POST /api/tenders/{id}?action=...
+			// STAFF actions
 			if (path.matches("^/\\d+/?$")) {
-				if (!isStaff(req)) {
-					resp.setStatus(403);
-					resp.getWriter().write("{\"error\":\"staff login required\"}");
-					return;
-				}
+				if (!isStaff(req)) { resp.setStatus(403); resp.getWriter().write("{\"error\":\"staff login required\"}"); return; }
 
 				long tenderId = Long.parseLong(path.substring(1));
 				String action = s(req.getParameter("action")).toLowerCase(Locale.ROOT);
@@ -378,11 +353,7 @@ public class TendersApiServlet extends HttpServlet {
 						String reason = s(req.getParameter("reason"));
 						tenderDao.award(tenderId, bidId, reason);
 					}
-					default -> {
-						resp.setStatus(400);
-						resp.getWriter().write("{\"error\":\"unknown action\"}");
-						return;
-					}
+					default -> { resp.setStatus(400); resp.getWriter().write("{\"error\":\"unknown action\"}"); return; }
 				}
 				resp.getWriter().write("{\"ok\":true}");
 				return;
