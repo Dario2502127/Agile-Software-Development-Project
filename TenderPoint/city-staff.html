@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenderPoint - City Tender Management</title>
+    <link rel="stylesheet" href="city-staff.css">
+</head>
+<body>
+    <header>
+        
+        <h1>TenderPoint</h1>
+    </header>
+
+    <div class="container">
+        <h2>Publish/Advertise Tender Notices, Announcements</h2>
+        
+        <form id="tenderForm">
+            <input type="hidden" id="editIndex">
+            <label for="fname">Full Name*</label>
+            <input type="text" id="fname" name="fname" placeholder="Full Name" required>
+            <label for="organization">Organization*</label>
+            <input type="text" id="organization" name="organization" placeholder="Name of your organization" required>
+            <label for="city">City*</label>
+            <input type="text" id="city"  name="city" placeholder="City" required>
+            <label for="mobileNumber">Mobile Number*</label>
+            <input type="text" id="mobileNumber" name="mobileNumber" placeholder="Mobile Number" required>
+            <label for="tenderTitle">Tender Title*</label>
+            <input type="text" id="tenderTitle" name="tenderTitle" placeholder="Tender Title" required>
+            <label for="tenderDescription">Tender Description*</label>
+            <textarea id="tenderDescription" name="tenderDescription" placeholder="Tender Description" required></textarea>
+            <button type="submit">Add Tender</button>
+        </form>
+
+        <h2>Current Tenders</h2>
+        <ul id="tenderList"></ul>
+    </div>
+
+    <script src="city-staff.js"></script>
+</body>
+</html>

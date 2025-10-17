@@ -12,7 +12,7 @@ document.getElementById("city-login-form").addEventListener("submit", function(e
   // Simulate staff login
   if (staffId === "city123" && password === "admin") {
     alert("Welcome City Staff!");
-    window.location.href = "tender.html"; // Redirect to Tender dashboard
+    window.location.href = "city-staff.html"; // Redirect to CityTender dashboard
   } else {
     alert("Invalid staff ID or password.");
   }
