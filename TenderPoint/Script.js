@@ -20,11 +20,34 @@ function renderTenders(list){
       <td>${escapeHtml(t.value)}</td>
       <td>${formatDate(t.closing)}</td>
       <td><span class="badge ${badgeClass(t.status)}">${escapeHtml(t.status)}</span></td>
-      <td><a class="cta" href="#view-${t.id}">View</a></td>
+      <td>
+      <a class="cta" href="javascript:void(0)" onclick="openTenderDetails(${t.id})">View</a>
+      </td>
+
     `;
     tbody.appendChild(tr);
   });
 }
+
+function openTenderDetails(id) {
+  const tender = demoTenders.find(t => t.id === id);
+  if (!tender) return;
+
+  document.getElementById('modal-title').textContent = tender.title;
+  document.getElementById('modal-sector').textContent = tender.sector;
+  document.getElementById('modal-value').textContent = tender.value;
+  document.getElementById('modal-status').textContent = tender.status;
+  document.getElementById('modal-closing').textContent = formatDate(tender.closing);
+  document.getElementById('modal-established').textContent = formatDate(tender.Established);
+
+  document.getElementById('tender-modal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('tender-modal').style.display = 'none';
+}
+
+
 
 function badgeClass(status){
   if(status.toLowerCase().includes('open')) return 'badge-open';
