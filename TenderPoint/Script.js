@@ -71,7 +71,6 @@ function escapeHtml(s){
 
 function applySearch(){
   const q = (document.getElementById('q').value || '').toLowerCase().trim();
-  const region = document.getElementById('region').value;
   const sector = document.getElementById('sector').value;
   const value = document.getElementById('value').value;
   const type = document.getElementById('type').value;
